@@ -1,0 +1,325 @@
+/* General Styles */
+html, body {
+    font-family: 'Arial', sans-serif;
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#pagina-ayuda, #pagina-contraseña, #pagina-cuenta, #pagina-facturacion, #pagina-registro {
+    padding-top: 70px; /* Ajusta según la altura de la navbar */
+}
+
+main {
+    flex: 1;
+}
+
+/* Hacer que el contenido crezca y empuje el footer hacia abajo */
+.container {
+    flex: 1;
+}
+
+.navbar {
+    padding: 15px 0;
+}
+
+h2{
+    color: black;
+}
+
+.navbar-brand {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.nav-link {
+    font-size: 1.4rem;
+}
+
+/* Carrusel */
+.carousel {
+    margin: auto;
+    width: 100vw; /* Ocupa todo el ancho de la pantalla */
+}
+
+.carousel-item {
+    height: 100%; /* Asegura que cada item del carrusel ocupe toda la altura */
+}
+
+.carousel-item img {
+    width: 100vw; /* Fuerza a que la imagen ocupe todo el ancho */
+    max-height: 700px; /* Mantiene la altura fija */
+    object-fit: cover; /* Evita deformaciones */
+}
+
+.carousel-item::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)); 
+    z-index: 1;
+}
+
+.carousel-caption {
+    z-index: 2; 
+}
+
+.carousel-caption h3 {
+    font-size: 2.5rem; 
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.carousel-caption p {
+    font-size: 1rem; 
+}
+
+.carousel-caption .btn-primary {
+    background-color: #000; 
+    border: none;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.carousel-caption .btn-primary:hover {
+    background-color: #333;
+}
+
+/* Cards - Productos */
+/* Estilo para las tarjetas de productos */
+.card {
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column; /* Hace que los elementos dentro de la tarjeta se alineen en columna */
+    height: 500px; /* Altura fija para todas las tarjetas */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Efecto de sombra */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilo para las imágenes de los productos */
+.card-img-top {
+    width: 100%;
+    height: 300px; /* Ajusta la altura de las imágenes */
+    object-fit: cover;
+}
+
+/* Aseguramos que el contenido de la tarjeta ocupe el espacio restante */
+.card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Espacia los elementos dentro de la tarjeta */
+    flex-grow: 1; /* Permite que la tarjeta se expanda para ocupar todo el espacio disponible */
+    text-align: center;
+}
+
+/* Estilo para los botones "Ver Más" */
+.btn-ver-mas {
+    background-color: #161618; /* Color oscuro similar a btn-dark */
+    color: #fff; /* Texto blanco */
+    border: none; /* Elimina el borde */
+    padding: 10px 20px; /* Ajusta el padding para darle más espacio al botón */
+    font-size: 1rem; /* Tamaño de texto */
+    border-radius: 5px; /* Bordes redondeados */
+    text-align: center; /* Centra el texto */
+    transition: background-color 0.3s ease; /* Transición para cambiar el color */
+    text-decoration: none;
+}
+
+.btn-ver-mas:hover {
+    background-color: #0c0d0e; /* Color más oscuro al pasar el mouse */
+    cursor: pointer; /* Cambia el cursor cuando está sobre el botón */
+}
+
+
+/* Estilos para el título y el texto */
+.card-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.card-text {
+    flex-grow: 1; /* Hace que el texto se expanda para ocupar el espacio disponible */
+    font-size: 1rem;
+}
+
+
+/* Estilo para las secciones de la lista */
+.list-group-item {
+    border: 1px solid #ccc; /* Borde sutil */
+    border-radius: 10px;
+    margin-bottom: 10px; /* Espaciado entre elementos */
+    transition: background-color 0.3s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa; /* Fondo más claro al pasar el mouse */
+}
+
+/* Títulos dentro de las categorías de productos */
+.list-group-item h5 {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+}
+
+.list-group-item p {
+    font-size: 1rem;
+    color: #666;
+    text-align: center;
+}
+
+
+/* Footer */
+footer {
+    background-color: #24282c;
+    margin-top: auto; /* Empuja el footer hacia el final */
+}
+
+footer a {
+    text-decoration: none;
+    color: #ffffff;
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: #ffd700;
+}
+
+/* Estilo para los cards */
+.card-nosotros {
+    width: 700px; /* Establece un ancho máximo para los cards */
+    margin: 20px auto;   /* Centra los cards en la página */
+    padding: 20px;
+    border-radius: 15px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column; /* Hace que los elementos dentro de la tarjeta se alineen en columna */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 2px solid #eee;  /* Un borde más suave */
+    background-color: #f9f9f9; /* Color de fondo suave */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+    border-color: black;
+}
+
+/* Efecto de hover: Sombra y aumento de tamaño */
+.card-nosotros:hover {
+    transform: translateY(-5px);  /* Hace que se desplace ligeramente hacia arriba */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Sombra más intensa al hacer hover */
+}
+
+/* Ajustes de tamaño en pantallas más grandes */
+@media (min-width: 768px) {
+    .card-nosotros {
+        max-width: 500px; /* Ancho máximo en pantallas grandes */
+        padding: 15px;
+    }
+}
+
+/* Ajustes en pantallas pequeñas */
+@media (max-width: 576px) {
+    .card-nosotros {
+        max-width: 90%; /* Ocupa el 90% del ancho en dispositivos pequeños */
+        padding: 10px;
+    }
+}
+
+/* Añadir un encabezado de card más atractivo */
+.card-nosotros h4 {
+    font-size: 1.5rem; /* Tamaño de fuente más grande */
+    color: #333; /* Color de texto oscuro para buena legibilidad */
+    margin-bottom: 15px; /* Espaciado inferior */
+    text-transform: uppercase; /* Poner en mayúsculas */
+    letter-spacing: 1px; /* Espaciado de letras */
+}
+
+/* Añadir espacio para el texto */
+.card-nosotros p {
+    font-size: 1rem;
+    color: #555; /* Color gris para el texto */
+    line-height: 1.6; /* Mejor legibilidad */
+    text-align: justify; /* Alineación justificada */
+}
+
+.btn-servicios {
+    background-color: #161618; /* Color oscuro similar a btn-dark */
+    color: #fff; /* Texto blanco */
+    border: none; /* Elimina el borde */
+    padding: 10px 20px; /* Ajusta el padding para darle más espacio al botón */
+    font-size: 1rem; /* Tamaño de texto */
+    border-radius: 5px; /* Bordes redondeados */
+    text-align: center; /* Centra el texto */
+    transition: background-color 0.3s ease; /* Transición para cambiar el color */
+    text-decoration: none;
+}
+
+.btn-servicios:hover {
+    background-color: #0c0d0e; /* Color más oscuro al pasar el mouse */
+    cursor: pointer; /* Cambia el cursor cuando está sobre el botón */
+}
+
+
+.nav-item.dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+
+/* Estilo para las secciones */
+.section-header {
+    background-size: cover; 
+    background-position: center; 
+    height: 300px; 
+    position: relative; 
+    padding-bottom: 10px;
+}
+
+.section-header .overlay {
+    position: absolute; 
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5); 
+    z-index: 1; 
+}
+
+.section-header p {
+    font-size: 1rem; 
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); 
+    max-width: 800px; 
+    margin: 0 auto; 
+    position: relative; 
+    z-index: 2; 
+}
+
+.section-header h1 {
+    font-weight: bold; 
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); 
+    position: relative; 
+    z-index: 2; 
+}
+
+.section-header .btn-light {
+    position: relative; 
+    z-index: 2; 
+}
+
+.section-header .btn-light:hover {
+    background-color: transparent; 
+    color: white; 
+    border: 1px solid white; 
+}
