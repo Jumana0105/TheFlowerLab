@@ -1,47 +1,73 @@
-<?php include_once "admin_menu.php"; ?>
-<?php
+<?php 
+include_once "admin_menu.php";
+// Incluir conexión antes de cualquier salida
 include 'conexion.php';
-session_start();
 
-//Solo acceden admins
-if (!isset($_SESSION['id']) || $_SESSION['tipo_usuario'] !== 'admin') {
-    header("Location: cuenta.php");
-    exit();
-}
-
-//Agregar usuario
+// Procesar inserción de usuario
 if (isset($_POST['insertar_usuario'])) {
-    $nuevoNombre   = $_POST['nuevo_nombre'];
-    $nuevoEmail    = $_POST['nuevo_email'];
+    $nuevoNombre = $_POST['nuevo_nombre'];
+    $nuevoEmail = $_POST['nuevo_email'];
     $nuevoTelefono = $_POST['nuevo_telefono'];
     $nuevoPassword = password_hash($_POST['nuevo_password'], PASSWORD_DEFAULT);
-    $nuevoTipo     = isset($_POST['es_admin']) ? 'admin' : 'cliente';
+    $nuevoTipo = isset($_POST['es_admin']) ? 'administrador' : 'cliente';
+    $resultado = 0;
 
-    $stmtInsert = $conexion->prepare(
-        "INSERT INTO usuarios (nombre, email, telefono, password, tipo_usuario) VALUES (?, ?, ?, ?, ?)"
-    );
-    $stmtInsert->bind_param("sssss", $nuevoNombre, $nuevoEmail, $nuevoTelefono, $nuevoPassword, $nuevoTipo);
-
-    if ($stmtInsert->execute()) {
-        header("Location: admin_usuarios.php");
-        exit();
+    $stmt = oci_parse($conn, "BEGIN SP_INSERTAR_USUARIO(:nombre, :email, :telefono, :password, :tipo, :resultado); END;");
+    oci_bind_by_name($stmt, ":nombre", $nuevoNombre);
+    oci_bind_by_name($stmt, ":email", $nuevoEmail);
+    oci_bind_by_name($stmt, ":telefono", $nuevoTelefono);
+    oci_bind_by_name($stmt, ":password", $nuevoPassword);
+    oci_bind_by_name($stmt, ":tipo", $nuevoTipo);
+    oci_bind_by_name($stmt, ":resultado", $resultado, -1, SQLT_INT);
+    
+    if (oci_execute($stmt)) {
+        if ($resultado == 1) {
+            header("Location: admin_usuarios.php");
+            exit();
+        } else {
+            $error = "Error al insertar el usuario (probablemente correo duplicado)";
+        }
     } else {
-        echo "<div class='alert alert-danger'>Error al insertar el usuario: " . htmlspecialchars($stmtInsert->error) . "</div>";
+        $error = oci_error($conn)['message'];
     }
 }
 
-//Eliminar usuarios
+// Procesar eliminación de usuario
 if (isset($_GET['eliminar'])) {
     $idEliminar = intval($_GET['eliminar']);
-    $stmt = $conexion->prepare("DELETE FROM usuarios WHERE id = ?");
-    $stmt->bind_param("i", $idEliminar);
-    $stmt->execute();
-    header("Location: admin_usuarios.php");
-    exit();
+    $resultado = 0;
+    
+    $stmt = oci_parse($conn, "BEGIN SP_ELIMINAR_USUARIO(:idUsuario, :resultado); END;");
+    oci_bind_by_name($stmt, ":idUsuario", $idEliminar);
+    oci_bind_by_name($stmt, ":resultado", $resultado, -1, SQLT_INT);
+    
+    if (oci_execute($stmt)) {
+        if ($resultado == 1) {
+            header("Location: admin_usuarios.php");
+            exit();
+        } else {
+            $error = "No se pudo eliminar el usuario";
+        }
+    } else {
+        $error = oci_error($conn)['message'];
+    }
 }
 
-//Obtener usuarios de la DB
-$usuarios = $conexion->query("SELECT id, nombre, email, telefono, tipo_usuario FROM usuarios ORDER BY id ASC");
+// Obtener lista de usuarios
+$cursor = null;
+$stmt = oci_parse($conn, "BEGIN SP_LISTAR_USUARIOS(:cursor); END;");
+$cursor = oci_new_cursor($conn);
+oci_bind_by_name($stmt, ":cursor", $cursor, -1, OCI_B_CURSOR);
+
+if (!oci_execute($stmt)) {
+    $error = oci_error($conn)['message'];
+    die("Error al obtener usuarios: " . $error);
+}
+
+if (!oci_execute($cursor)) {
+    $error = oci_error($conn)['message'];
+    die("Error al ejecutar cursor: " . $error);
+}
 ?>
 
 <!DOCTYPE html>
@@ -50,6 +76,11 @@ $usuarios = $conexion->query("SELECT id, nombre, email, telefono, tipo_usuario F
     <meta charset="UTF-8">
     <title>Administrar Usuarios</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .table-responsive {
+            overflow-x: auto;
+        }
+    </style>
 </head>
 <body>
     <div class="container my-5">
@@ -58,37 +89,43 @@ $usuarios = $conexion->query("SELECT id, nombre, email, telefono, tipo_usuario F
             <h2 class="fw-bold display-6 text-dark mx-auto">Administración de Usuarios</h2>
         </div>
 
-        <table class="table table-striped table-bordered">
-            <thead class="table-dark">
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Correo</th>
-                    <th>Teléfono</th>
-                    <th>Tipo</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while ($usuario = $usuarios->fetch_assoc()): ?>
+        <?php if (isset($error)): ?>
+            <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+        <?php endif; ?>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-dark">
                     <tr>
-                        <td><?php echo $usuario['id']; ?></td>
-                        <td><?php echo htmlspecialchars($usuario['nombre']); ?></td>
-                        <td><?php echo htmlspecialchars($usuario['email']); ?></td>
-                        <td><?php echo htmlspecialchars($usuario['telefono']); ?></td>
-                        <td><?php echo htmlspecialchars($usuario['tipo_usuario']); ?></td>
-                        <td>
-                            <a href="admin_editar_usuario.php?id=<?php echo $usuario['id']; ?>" class="btn btn-sm btn-warning">Editar</a>
-                            <a href="?eliminar=<?php echo $usuario['id']; ?>" 
-                               class="btn btn-sm btn-danger" 
-                               onclick="return confirm('¿Seguro que deseas eliminar este usuario?')">
-                               Eliminar
-                            </a>
-                        </td>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Correo</th>
+                        <th>Teléfono</th>
+                        <th>Tipo</th>
+                        <th>Acciones</th>
                     </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php while ($usuario = oci_fetch_assoc($cursor)): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($usuario['ID']); ?></td>
+                            <td><?php echo htmlspecialchars($usuario['NOMBRE']); ?></td>
+                            <td><?php echo htmlspecialchars($usuario['EMAIL']); ?></td>
+                            <td><?php echo htmlspecialchars($usuario['TELEFONO']); ?></td>
+                            <td><?php echo htmlspecialchars($usuario['TIPO_USUARIO']); ?></td>
+                            <td>
+                                <a href="admin_editar_usuario.php?id=<?php echo htmlspecialchars($usuario['ID']); ?>" class="btn btn-sm btn-warning">Editar</a>
+                                <a href="?eliminar=<?php echo htmlspecialchars($usuario['ID']); ?>" 
+                                   class="btn btn-sm btn-danger" 
+                                   onclick="return confirm('¿Seguro que deseas eliminar este usuario?')">
+                                   Eliminar
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
 
         <hr class="my-5">
         <h3>Agregar nuevo usuario</h3>

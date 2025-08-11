@@ -1,25 +1,33 @@
-<?php include_once "cliente_menu.php" ?>
-<?php
+<?php 
+include_once "cliente_menu.php";
 session_start();
 include 'conexion.php';
 
-$idUsuario = $_SESSION['id'] ?? null;
-$datosUsuario = [];
-
-if ($idUsuario) {
-    $sql = "SELECT nombre, email, telefono FROM usuarios WHERE id = ?";
-    $stmt = $conexion->prepare($sql);
-    $stmt->bind_param("i", $idUsuario);
-    $stmt->execute();
-    $resultado = $stmt->get_result();
-    $datosUsuario = $resultado->fetch_assoc();
+// Verificar si el usuario está autenticado
+if (isset($_SESSION['id_usuario'])) {
+    // Obtener datos del usuario usando procedimiento almacenado
+    $sql = "BEGIN SP_OBTENER_DATOS_USUARIO(:id_usuario, :cursor); END;";
+    $stmt = oci_parse($conn, $sql);
+    $cursor = oci_new_cursor($conn);
+    
+    oci_bind_by_name($stmt, ':id_usuario', $_SESSION['id_usuario']);
+    oci_bind_by_name($stmt, ':cursor', $cursor, -1, OCI_B_CURSOR);
+    
+    oci_execute($stmt);
+    oci_execute($cursor);
+    
+    $datosUsuario = oci_fetch_assoc($cursor);
+    
+    // Variables seguras para el formulario
+    $nombreUsuario = $datosUsuario['NOMBRE'] ?? '';
+    $emailUsuario = $datosUsuario['EMAIL'] ?? '';
+    $telefonoUsuario = $datosUsuario['TELEFONO'] ?? '';
+    
+    oci_free_statement($stmt);
+    oci_free_statement($cursor);
 }
-
-// Variables seguras para el formulario
-$nombreUsuario = $datosUsuario['nombre'] ?? null;
-$emailUsuario = $datosUsuario['email'] ?? null;
-$telefonoUsuario = $datosUsuario['telefono'] ?? null;
 ?>
+
 <head>
     <title>Cuenta - Floristería</title>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

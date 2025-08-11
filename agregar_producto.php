@@ -1,57 +1,71 @@
-<?php include_once "admin_menu.php" ?>
 <?php
+include_once "admin_menu.php";
 include 'conexion.php';
-session_start();
-
-if (!isset($_SESSION['id'])) {
-    header("Location: cuenta.php");
-    exit();
-}
 
 $mensaje = "";
 $listaCategorias = [];
 
-// Obtener categorías
-$consultaCategorias = $conexion->query("SELECT * FROM categoria");
-foreach ($consultaCategorias as $fila) {
-    $listaCategorias[] = (object) $fila;
+$stidCat = oci_parse($conn, "BEGIN SP_OBTENER_CATEGORIAS_ACTIVAS(:cursor); END;");
+$cursorCat = oci_new_cursor($conn);
+oci_bind_by_name($stidCat, ":cursor", $cursorCat, -1, OCI_B_CURSOR);
+oci_execute($stidCat);
+oci_execute($cursorCat);
+
+while (($row = oci_fetch_assoc($cursorCat)) !== false) {
+    $listaCategorias[] = $row;
 }
 
-// Procesar formulario
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $nombre = $_POST['nombre'];
     $descripcion = $_POST['descripcion'];
     $precio = $_POST['precio'];
-    $disponible = $_POST['disponibilidad'];
+    $disponible = ($_POST['disponibilidad'] == '1') ? 'Sí' : 'No'; 
     $categoria = $_POST['categoria'];
     $cantidad = $_POST['cantidad'];
 
-    // Imagen
     $nombreImagen = $_FILES['imagen']['name'];
     $tmp = $_FILES['imagen']['tmp_name'];
     $rutaDestino = "img/" . $nombreImagen;
 
-    move_uploaded_file($tmp, $rutaDestino); // Guarda la imagen en carpeta img/
+    move_uploaded_file($tmp, $rutaDestino);
 
-    // Insertar en producto
-    $insertar = "INSERT INTO producto (nombre_producto, descripcion, precio, disponibilidad, id_categoria, imagen)
-                 VALUES ('$nombre', '$descripcion', $precio, $disponible, $categoria, '$nombreImagen')";
+    $stidAdd = oci_parse($conn, "
+        BEGIN
+            PKG_CRUD_PRODUCTOS.SP_AGREGAR_PRODUCTO(
+                :p_nombre,
+                :p_cantidad,
+                :p_descripcion,
+                :p_precio,
+                :p_activo,
+                :p_id_categoria,
+                :p_imagen,
+                :p_resultado,
+                :p_id_generado
+            );
+        END;
+    ");
 
-    if ($conexion->query($insertar)) {
-        $idProducto = $conexion->insert_id;
+    oci_bind_by_name($stidAdd, ':p_nombre', $nombre);
+    oci_bind_by_name($stidAdd, ':p_cantidad', $cantidad, -1, SQLT_INT);
+    oci_bind_by_name($stidAdd, ':p_descripcion', $descripcion);
+    oci_bind_by_name($stidAdd, ':p_precio', $precio);
+    oci_bind_by_name($stidAdd, ':p_activo', $disponible);
+    oci_bind_by_name($stidAdd, ':p_id_categoria', $categoria, -1, SQLT_INT);
+    oci_bind_by_name($stidAdd, ':p_imagen', $nombreImagen);
+    oci_bind_by_name($stidAdd, ':p_resultado', $resultado, 32);
+    oci_bind_by_name($stidAdd, ':p_id_generado', $idGenerado, 32);
 
-        $conexion->query("INSERT INTO inventario (id_producto, cantidad_disponible) VALUES ($idProducto, $cantidad)");
+    oci_execute($stidAdd);
 
-        $mensaje = "Producto agregado correctamente.";
+    if ($resultado == 1) {
+        // Aquí podrías insertar en inventario si quieres, con otro SP o manejo Oracle
+        $mensaje = "Producto agregado correctamente con ID: $idGenerado";
     } else {
-        $mensaje = "Error: " . $conexion->error;
+        $mensaje = "Error al agregar producto.";
     }
 }
 ?>
-<head>
-    <title>Agregar Producto</title>
-</head>
-<body>
+
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4 position-relative">
         <a href="admin_productos.php" class="btn btn-outline-secondary position-absolute start-0">Volver</a>
@@ -60,57 +74,47 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <?php if ($mensaje): ?>
         <div class="alert alert-info"><?= $mensaje ?></div>
     <?php endif; ?>
-    <form method="POST" enctype="multipart/form-data">
-        <div class="mb-3">
+    <form method="POST" enctype="multipart/form-data" class="row g-3">
+        <div class="col-md-6">
             <label>Nombre:</label>
             <input type="text" name="nombre" class="form-control" required>
         </div>
-        <div class="mb-3">
+        <div class="col-md-6">
+            <label>Cantidad en stock:</label>
+            <input type="number" name="cantidad" class="form-control" required>
+        </div>
+        <div class="col-12">
             <label>Descripción:</label>
             <textarea name="descripcion" class="form-control" required></textarea>
         </div>
-        <div class="mb-3">
+        <div class="col-md-4">
             <label>Precio:</label>
             <input type="number" step="0.01" name="precio" class="form-control" required>
         </div>
-        <div class="mb-3">
+        <div class="col-md-4">
             <label>¿Disponible?</label>
-            <select name="disponibilidad" class="form-control">
+            <select name="disponibilidad" class="form-select" required>
                 <option value="1">Sí</option>
                 <option value="0">No</option>
             </select>
         </div>
-        <div class="mb-3">
+        <div class="col-md-4">
             <label>Categoría:</label>
-            <select name="categoria" class="form-control">
+            <select name="categoria" class="form-select" required>
                 <?php foreach ($listaCategorias as $categoria): ?>
-                    <option value="<?= $categoria->id_categoria ?>">
-                        <?= htmlspecialchars($categoria->nombre_categoria) ?>
+                    <option value="<?= $categoria['IDCATEGORIAS'] ?>">
+                        <?= htmlspecialchars($categoria['NOMBRE']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="mb-3">
+        <div class="col-md-6">
             <label>Imagen:</label>
             <input type="file" name="imagen" class="form-control" accept="image/*" required>
         </div>
-        <div class="mb-3">
-            <label>Cantidad en stock:</label>
-            <input type="number" name="cantidad" class="form-control" required>
-        </div>
-        <div class="mb-3">
+        <div class="col-12">
             <button type="submit" class="btn btn-success">Guardar</button>
             <a href="admin_productos.php" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>
 </div>
-<!-- Footer -->
-<footer class="bg-dark text-white py-4">
-        <div class="container text-center">
-            <p>&copy; 2025 Floristería Online. Todos los derechos reservados.</p>
-            <p><a href="Privacidad.php" class="text-white">Política de Privacidad</a> | <a href="Terminos.php" class="text-white">Términos y
-                    Condiciones</a></p>
-        </div>
-    </footer>
-</body>
-</html>

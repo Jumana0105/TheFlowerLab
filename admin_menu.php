@@ -1,5 +1,45 @@
 <?php
+session_start();
+
+// Verificar sesión activa
+if (!isset($_SESSION['id_usuario'])) {
+    header("Location: login.php?redir=admin");
+    exit();
+}
+
+include 'conexion.php';
+
+function obtenerTipoUsuario($conn, $id_usuario) {
+    $sql = "BEGIN SP_OBTENER_TIPO_USUARIO(:id_usuario, :tipo_usuario); END;";
+    $stmt = oci_parse($conn, $sql);
+    
+    $tipo_usuario = '';
+    oci_bind_by_name($stmt, ':id_usuario', $id_usuario);
+    oci_bind_by_name($stmt, ':tipo_usuario', $tipo_usuario, 20);
+    
+    if (@oci_execute($stmt)) {
+        oci_free_statement($stmt);
+        return is_string($tipo_usuario) ? $tipo_usuario : '';
+    }
+    
+    return '';
+}
+
+// Obtener tipo de usuario de forma segura
+$tipo_usuario = obtenerTipoUsuario($conn, $_SESSION['id_usuario']);
+
+// Conversión a string seguro para strtoupper
+$tipo_usuario_str = is_string($tipo_usuario) ? $tipo_usuario : '';
+$tipo_mayusculas = strtoupper(trim($tipo_usuario_str));
+
+
+if ($tipo_mayusculas !== 'ADMINISTRADOR') {
+    $_SESSION['error_acceso'] = "Acceso restringido a administradores";
+    header("Location: index.php");
+    exit();
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 

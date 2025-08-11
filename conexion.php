@@ -1,8 +1,12 @@
 <?php
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-$conexion = new mysqli("localhost", "floristeria", "123", "floristeria");
+$usuario = 'FLOWERLAB_USER';
+$clave   = 'Flab2025$';
+$cadena  = '//localhost:1521/ORCL';  // 
+$conn = oci_connect($usuario, $clave, $cadena, 'AL32UTF8');
 
-if ($conexion->connect_error) {
-    die("Conexión fallida: " . $conexion->connect_error);
+if (!$conn) {
+    $e = oci_error();
+    die("Conexión fallida: " . $e['message']);
 }
+
 ?>

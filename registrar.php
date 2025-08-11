@@ -2,55 +2,61 @@
 session_start();
 include 'conexion.php';
 
-// Evita espacios antes del header
-ob_start();
+// Obtener datos del formulario
+$nombre = $_POST['name'] ?? '';
+$email = $_POST['email'] ?? '';
+$telefono = $_POST['telefono'] ?? '';
+$password = $_POST['password'] ?? '';
 
-try {
-    if (
-        isset($_POST['name']) &&
-        isset($_POST['email']) &&
-        isset($_POST['telefono']) &&
-        isset($_POST['password'])
-    ) {
-        $nombre = trim($_POST['name']);
-        $email = trim($_POST['email']);
-        $telefono = trim($_POST['telefono']);
-        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-
-        $sql = "INSERT INTO usuarios (nombre, email, telefono, password, tipo_usuario) VALUES (?, ?, ?, ?, 'cliente')";
-        $stmt = $conexion->prepare($sql);
-
-        if ($stmt) {
-            $stmt->bind_param("ssss", $nombre, $email, $telefono, $password);
-
-            if ($stmt->execute()) {
-                $_SESSION['email'] = $email;
-                $_SESSION['nombre'] = $nombre;
-                $_SESSION['tipo_usuario'] = 'cliente';
-
-                header("Location: cuenta.php?email=" . urlencode($email));
-                exit();
-            } else {
-                // Error normal
-                header("Location: registro.php?error=registroFallido");
-                exit();
-            }
-        } else {
-            header("Location: registro.php?error=stmt");
-            exit();
-        }
-    } else {
-        header("Location: registro.php?error=incompleto");
-        exit();
-    }
-} catch (mysqli_sql_exception $e) {
-    // Detecta error por entrada duplicada
-    if (str_contains($e->getMessage(), "Duplicate entry")) {
-        header("Location: registro.php?error=usuarioExiste");
-    } else {
-        header("Location: registro.php?error=desconocido");
-    }
+// Validación básica en PHP (frontend)
+if (empty($nombre) || empty($email) || empty($password)) {
+    header("Location: registro.php?error=campos_requeridos");
     exit();
 }
-ob_end_flush();
+
+// Hash de la contraseña
+$password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+try {
+    // Llamar al procedimiento almacenado
+    $sql = "BEGIN SP_REGISTRAR_USUARIO(:nombre, :email, :telefono, :password, :resultado, :mensaje, :id_usuario); END;";
+    $stmt = oci_parse($conn, $sql);
+    
+    // Bind de parámetros
+    oci_bind_by_name($stmt, ':nombre', $nombre);
+    oci_bind_by_name($stmt, ':email', $email);
+    oci_bind_by_name($stmt, ':telefono', $telefono);
+    oci_bind_by_name($stmt, ':password', $password_hash);
+    oci_bind_by_name($stmt, ':resultado', $resultado, 32); 
+    oci_bind_by_name($stmt, ':mensaje', $mensaje, 200); 
+    oci_bind_by_name($stmt, ':id_usuario', $id_usuario, 32); 
+    
+    if (!oci_execute($stmt)) {
+        $e = oci_error($stmt);
+        throw new Exception("Error en Oracle: " . $e['message']);
+    }
+    
+    if ($resultado == 1) {
+        // Registro exitoso
+        $_SESSION['id_usuario'] = $id_usuario;
+        $_SESSION['nombre'] = $nombre;
+        $_SESSION['email'] = $email;
+        $_SESSION['tipo_usuario'] = 'cliente';
+        
+        header("Location: cuenta.php");
+        exit();
+    } else {
+        // Error específico
+        header("Location: registro.php?error=" . urlencode($mensaje));
+        exit();
+    }
+} catch (Exception $e) {
+    error_log("Error en registro: " . $e->getMessage());
+    header("Location: registro.php?error=error_sistema");
+    exit();
+} finally {
+    if (isset($stmt)) {
+        oci_free_statement($stmt);
+    }
+}
 ?>

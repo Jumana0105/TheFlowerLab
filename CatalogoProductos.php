@@ -16,49 +16,63 @@
         </div>
 
         <?php
-        // IDs de las categorías a mostrar
-        $categorias = [
-            1 => "Plantas Medicinales",
-            2 => "Ramos de Flores",
-            3 => "Plantas de Interior"
-        ];
+        // Consultar categorías activas desde la base de datos
+        $queryCategorias = oci_parse($conn, "BEGIN SP_OBTENER_CATEGORIAS_ACTIVAS(:cursor); END;");
+        $cursorCategorias = oci_new_cursor($conn);
+        oci_bind_by_name($queryCategorias, ":cursor", $cursorCategorias, -1, OCI_B_CURSOR);
+        oci_execute($queryCategorias);
+        oci_execute($cursorCategorias);
 
-        foreach ($categorias as $idCategoria => $nombreCategoria):
-            $query = $conexion->prepare("
-            SELECT p.*
-            FROM producto p
-            WHERE p.disponibilidad = 1 AND p.id_categoria = ?
-        ");
-            $query->bind_param("i", $idCategoria);
-            $query->execute();
-            $resultado = $query->get_result();
+        // Procesar cada categoría
+        while ($categoria = oci_fetch_assoc($cursorCategorias)):
+            $idCategoria = $categoria['IDCATEGORIAS'];
+            $nombreCategoria = $categoria['NOMBRE'];
+            
+            // Consultar productos por categoría
+            $queryProductos = oci_parse($conn, "BEGIN SP_LISTAR_PRODUCTOS_CATEGORIA(:id_categoria, :cursor); END;");
+            oci_bind_by_name($queryProductos, ":id_categoria", $idCategoria);
+            $cursorProductos = oci_new_cursor($conn);
+            oci_bind_by_name($queryProductos, ":cursor", $cursorProductos, -1, OCI_B_CURSOR);
+            oci_execute($queryProductos);
+            oci_execute($cursorProductos);
             ?>
             <section class="my-5">
-                <h3><?= $nombreCategoria ?></h3>
+                <h3><?= htmlspecialchars($nombreCategoria) ?></h3>
                 <div class="row">
-                    <?php if ($resultado->num_rows > 0): ?>
-                        <?php while ($producto = $resultado->fetch_assoc()): ?>
-                            <div class="col-md-4 mb-4">
-                                <div class="card h-100">
-                                    <img src="img/<?= htmlspecialchars($producto['imagen']) ?>" class="card-img-top"
-                                        alt="<?= htmlspecialchars($producto['nombre_producto']) ?>">
-                                    <div class="card-body">
-                                        <h5 class="card-title"><?= htmlspecialchars($producto['nombre_producto']) ?></h5>
-                                        <p class="card-text"><?= htmlspecialchars($producto['descripcion']) ?></p>
-                                        <p class="fw-bold">Precio: ₡<?= number_format($producto['precio'], 0, '', ',') ?></p>
-                                        <button class="btn btn-success" onclick="agregarAlCarrito(<?= $producto['id_producto'] ?>, 
-                                '<?= htmlspecialchars($producto['nombre_producto']) ?>', <?= $producto['precio'] ?>)">
-                                            Agregar al carrito </button>
-                                    </div>
+                    <?php $hayProductos = false; ?>
+                    <?php while ($producto = oci_fetch_assoc($cursorProductos)): ?>
+                        <?php $hayProductos = true; ?>
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <img src="img/<?= htmlspecialchars($producto['IMAGEN']) ?>" class="card-img-top"
+                                    alt="<?= htmlspecialchars($producto['NOMBRE_PRODUCTO']) ?>">
+                                <div class="card-body">
+                                    <h5 class="card-title"><?= htmlspecialchars($producto['NOMBRE_PRODUCTO']) ?></h5>
+                                    <p class="card-text"><?= htmlspecialchars($producto['DESCRIPCION']) ?></p>
+                                    <p class="fw-bold">Precio: ₡<?= number_format($producto['PRECIO'], 0, '', ',') ?></p>
+                                    <button class="btn btn-success" onclick="agregarAlCarrito(<?= $producto['ID_PRODUCTO'] ?>, 
+                            '<?= htmlspecialchars($producto['NOMBRE_PRODUCTO']) ?>', <?= $producto['PRECIO'] ?>)">
+                                        Agregar al carrito </button>
                                 </div>
                             </div>
-                        <?php endwhile; ?>
-                    <?php else: ?>
+                        </div>
+                    <?php endwhile; ?>
+                    <?php if (!$hayProductos): ?>
                         <p class="text-muted">No hay productos disponibles en esta categoría.</p>
                     <?php endif; ?>
                 </div>
             </section>
-        <?php endforeach; ?>
+            
+            <?php
+            // Liberar recursos de productos
+            oci_free_statement($queryProductos);
+            oci_free_statement($cursorProductos);
+        endwhile;
+        
+        // Liberar recursos de categorías
+        oci_free_statement($queryCategorias);
+        oci_free_statement($cursorCategorias);
+        ?>
     </div>
 
     <!-- Footer -->
