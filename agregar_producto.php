@@ -58,7 +58,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     oci_execute($stidAdd);
 
     if ($resultado == 1) {
-        // Aquí podrías insertar en inventario si quieres, con otro SP o manejo Oracle
         $mensaje = "Producto agregado correctamente con ID: $idGenerado";
     } else {
         $mensaje = "Error al agregar producto.";

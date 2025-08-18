@@ -115,6 +115,7 @@ CREATE TABLE Telefonos (
   NumeroTelefono VARCHAR2(45) NOT NULL
 );
 
+
 CREATE TABLE Telefonos_has_Proveedor (
   idTelefonos NUMBER NOT NULL,
   idProveedor NUMBER NOT NULL,
@@ -149,11 +150,10 @@ CREATE TABLE auditoria_productos (
 -- CRUD para Productos
 
 CREATE OR REPLACE PACKAGE PKG_CRUD_PRODUCTOS AS
-  TYPE t_cursor IS REF CURSOR;
 
-  FUNCTION FN_OBTENER_PRODUCTOS RETURN t_cursor;
-  FUNCTION FN_OBTENER_PRODUCTO(p_id_producto IN NUMBER) RETURN t_cursor;
-  FUNCTION FN_BUSCAR_PRODUCTOS(p_busqueda IN VARCHAR2) RETURN t_cursor;
+  FUNCTION FN_OBTENER_PRODUCTOS RETURN SYS_REFCURSOR;
+  FUNCTION FN_OBTENER_PRODUCTO(p_id_producto IN NUMBER) RETURN SYS_REFCURSOR;
+  FUNCTION FN_BUSCAR_PRODUCTOS(p_busqueda IN VARCHAR2) RETURN SYS_REFCURSOR;
 
   PROCEDURE SP_AGREGAR_PRODUCTO(
     p_nombre IN VARCHAR2,
@@ -180,92 +180,51 @@ CREATE OR REPLACE PACKAGE PKG_CRUD_PRODUCTOS AS
 
   FUNCTION FN_ELIMINAR_PRODUCTO(p_id_producto IN NUMBER) RETURN NUMBER;
 END PKG_CRUD_PRODUCTOS;
-/
+
 
 
 CREATE OR REPLACE PACKAGE BODY PKG_CRUD_PRODUCTOS AS
 
-  FUNCTION FN_OBTENER_PRODUCTOS RETURN t_cursor IS
-    v_cursor t_cursor;
-  BEGIN
-    OPEN v_cursor FOR
-      SELECT 
-        p.idProductos,
-        p.Nombre,
-        p.Cantidad,
-        p.Descripcion,
-        p.Precio,
-        p.Activo,
-        p.IMAGEN,
-        c.idCategorias,
-        c.Nombre AS nombre_categoria
-      FROM Producto p
-      JOIN Categorias c ON p.idCategorias = c.idCategorias
-      ORDER BY p.Nombre;
+  FUNCTION FN_OBTENER_PRODUCTOS RETURN SYS_REFCURSOR IS
+  v_cursor SYS_REFCURSOR;
+BEGIN
+  OPEN v_cursor FOR
+    SELECT p.idProductos, p.Nombre, p.Cantidad, p.Descripcion,
+           p.Precio, p.Activo, p.IMAGEN, c.idCategorias, c.Nombre AS nombre_categoria
+    FROM Producto p
+    JOIN Categorias c ON p.idCategorias = c.idCategorias
+    ORDER BY p.Nombre;
 
-    RETURN v_cursor;
-  EXCEPTION
-    WHEN OTHERS THEN
-      IF v_cursor%ISOPEN THEN
-        CLOSE v_cursor;
-      END IF;
-      RAISE;
-  END FN_OBTENER_PRODUCTOS;
+  RETURN v_cursor;
 
-  FUNCTION FN_OBTENER_PRODUCTO(p_id_producto IN NUMBER) RETURN t_cursor IS
-    v_cursor t_cursor;
-  BEGIN
-    OPEN v_cursor FOR
-      SELECT 
-        p.idProductos,
-        p.Nombre,
-        p.Cantidad,
-        p.Descripcion,
-        p.Precio,
-        p.Activo,
-        p.IMAGEN,
-        c.idCategorias,
-        c.Nombre AS nombre_categoria
-      FROM Producto p
-      JOIN Categorias c ON p.idCategorias = c.idCategorias
-      WHERE p.idProductos = p_id_producto;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF v_cursor%ISOPEN THEN
+      CLOSE v_cursor;
+    END IF;
+    RAISE;
+END FN_OBTENER_PRODUCTOS;
 
-    RETURN v_cursor;
-  EXCEPTION
-    WHEN OTHERS THEN
-      IF v_cursor%ISOPEN THEN
-        CLOSE v_cursor;
-      END IF;
-      RAISE;
-  END FN_OBTENER_PRODUCTO;
 
-  FUNCTION FN_BUSCAR_PRODUCTOS(p_busqueda IN VARCHAR2) RETURN t_cursor IS
-    v_cursor t_cursor;
-  BEGIN
-    OPEN v_cursor FOR
-      SELECT 
-        p.idProductos,
-        p.Nombre,
-        p.Cantidad,
-        p.Descripcion,
-        p.Precio,
-        p.Activo,
-        p.IMAGEN,
-        c.Nombre AS nombre_categoria
-      FROM Producto p
-      JOIN Categorias c ON p.idCategorias = c.idCategorias
-      WHERE UPPER(p.Nombre) LIKE '%' || UPPER(p_busqueda) || '%'
-         OR UPPER(p.Descripcion) LIKE '%' || UPPER(p_busqueda) || '%'
-      ORDER BY p.Nombre;
+  FUNCTION FN_OBTENER_PRODUCTO(p_id_producto IN NUMBER) RETURN SYS_REFCURSOR IS
+  v_cursor SYS_REFCURSOR;
+BEGIN
+  OPEN v_cursor FOR
+    SELECT p.idProductos, p.Nombre, p.Cantidad, p.Descripcion,
+           p.Precio, p.Activo, p.IMAGEN, c.idCategorias, c.Nombre AS nombre_categoria
+    FROM Producto p
+    JOIN Categorias c ON p.idCategorias = c.idCategorias
+    WHERE p.idProductos = p_id_producto;
 
-    RETURN v_cursor;
-  EXCEPTION
-    WHEN OTHERS THEN
-      IF v_cursor%ISOPEN THEN
-        CLOSE v_cursor;
-      END IF;
-      RAISE;
-  END FN_BUSCAR_PRODUCTOS;
+  RETURN v_cursor;
+
+EXCEPTION
+  WHEN OTHERS THEN
+    IF v_cursor%ISOPEN THEN
+      CLOSE v_cursor;
+    END IF;
+    RAISE;
+END FN_OBTENER_PRODUCTO;
 
   PROCEDURE SP_AGREGAR_PRODUCTO(
     p_nombre IN VARCHAR2,
@@ -348,10 +307,6 @@ CREATE OR REPLACE PACKAGE BODY PKG_CRUD_PRODUCTOS AS
   END FN_ELIMINAR_PRODUCTO;
 
 END PKG_CRUD_PRODUCTOS;
-/
-
-
-SELECT PKG_CRUD_PRODUCTOS.FN_OBTENER_PRODUCTOS() FROM DUAL
 
 
 -- Obtener categorias
@@ -459,88 +414,6 @@ EXCEPTION
     ROLLBACK;
 END;
 
-
-CREATE OR REPLACE PROCEDURE SP_AUTENTICAR_USUARIO (
-  P_EMAIL IN VARCHAR2,
-  P_PASSWORD_PLAIN IN VARCHAR2,
-  P_RESULTADO OUT NUMBER,
-  P_MENSAJE OUT VARCHAR2,
-  P_ID_USUARIO OUT NUMBER,
-  P_NOMBRE OUT VARCHAR2,
-  P_TIPO_USUARIO OUT VARCHAR2,
-  P_EMAIL_USUARIO OUT VARCHAR2
-) AS
-  v_password_hash VARCHAR2(512);
-  v_activo VARCHAR2(3);
-BEGIN
-  P_ID_USUARIO := NULL;
-  P_NOMBRE := NULL;
-  P_TIPO_USUARIO := NULL;
-  P_EMAIL_USUARIO := NULL;
-  
-  BEGIN
-    SELECT 
-      idUsuario, 
-      SUBSTR(nombre, 1, 150), 
-      password, 
-      SUBSTR(tipo_usuario, 1, 20), 
-      activo,
-      SUBSTR(email, 1, 150)
-    INTO 
-      P_ID_USUARIO, 
-      P_NOMBRE, 
-      v_password_hash, 
-      P_TIPO_USUARIO, 
-      v_activo,
-      P_EMAIL_USUARIO
-    FROM Usuarios
-    WHERE email = LOWER(TRIM(P_EMAIL));
-    
-    EXCEPTION
-      WHEN NO_DATA_FOUND THEN
-        P_RESULTADO := 0;
-        P_MENSAJE := 'Usuario no encontrado';
-        RETURN;
-      WHEN OTHERS THEN
-        P_RESULTADO := 0;
-        P_MENSAJE := 'Error al buscar usuario: ' || SQLERRM;
-        RETURN;
-  END;
-  
-  -- Verificar cuenta activa
-  IF v_activo = 'No' THEN
-    P_RESULTADO := 0;
-    P_MENSAJE := 'Cuenta inactiva';
-    RETURN;
-  END IF;
-  
-  IF v_password_hash IS NOT NULL THEN
-    P_RESULTADO := 1;
-    P_MENSAJE := 'Autenticación exitosa (modo depuración)';
-  ELSE
-    P_RESULTADO := 0;
-    P_MENSAJE := 'Credenciales incorrectas';
-  END IF;
-EXCEPTION
-  WHEN OTHERS THEN
-    P_RESULTADO := 0;
-    P_MENSAJE := 'Error en autenticación. Código: ' || SQLCODE || ' - ' || SUBSTR(SQLERRM, 1, 100);
-END;
-
-
-CREATE OR REPLACE FUNCTION VERIFICAR_PASSWORD (
-  P_PASSWORD_PLAIN IN VARCHAR2,
-  P_PASSWORD_HASH IN VARCHAR2
-) RETURN NUMBER IS
-BEGIN
-
-  IF P_PASSWORD_HASH LIKE '%' || P_PASSWORD_PLAIN || '%' THEN
-    RETURN 1;
-  ELSE
-    RETURN 0;
-  END IF;
-END;
-
 CREATE OR REPLACE PROCEDURE SP_OBTENER_USUARIO_POR_EMAIL (
   P_EMAIL IN VARCHAR2,
   P_CURSOR OUT SYS_REFCURSOR
@@ -605,27 +478,6 @@ EXCEPTION
 END;
 
 
-CREATE OR REPLACE PROCEDURE SP_VERIFICAR_ADMIN (
-  P_ID_USUARIO IN NUMBER,
-  P_ES_ADMIN OUT NUMBER
-) AS
-  V_TIPO VARCHAR2(30);
-BEGIN
-  SELECT tipo_usuario INTO V_TIPO
-  FROM Usuarios
-  WHERE idUsuario = P_ID_USUARIO;
-  
-  IF V_TIPO = 'administrador' THEN
-    P_ES_ADMIN := 1; -- Es administrador
-  ELSE
-    P_ES_ADMIN := 0; -- No es administrador
-  END IF;
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    P_ES_ADMIN := 0; -- Usuario no encontrado
-END SP_VERIFICAR_ADMIN;
-
-
 CREATE OR REPLACE PROCEDURE SP_LISTAR_USUARIOS (
   P_CURSOR OUT SYS_REFCURSOR
 ) AS
@@ -640,7 +492,6 @@ BEGIN
   FROM Usuarios
   ORDER BY idUsuario ASC;
 END SP_LISTAR_USUARIOS;
-
 
 
 CREATE OR REPLACE PROCEDURE SP_INSERTAR_USUARIO (
@@ -700,7 +551,7 @@ BEGIN
     
     RETURN v_cursor;
 END;
-/
+
 
 CREATE OR REPLACE PROCEDURE SP_ACTUALIZAR_USUARIO(
     p_id_usuario IN NUMBER,
@@ -730,6 +581,110 @@ END;
 
 select * from usuarios
 
+-- PKG CRUD Categorías
+
+CREATE OR REPLACE PACKAGE PKG_CATEGORIAS AS
+    PROCEDURE SP_INSERTAR_CATEGORIA(
+        p_nombre      IN VARCHAR2,
+        p_descripcion IN VARCHAR2,
+        p_activo      IN VARCHAR2,
+        p_resultado   OUT NUMBER
+    );
+
+    PROCEDURE SP_ACTUALIZAR_CATEGORIA(
+        p_id          IN NUMBER,
+        p_nombre      IN VARCHAR2,
+        p_descripcion IN VARCHAR2,
+        p_activo      IN VARCHAR2,
+        p_resultado   OUT NUMBER
+    );
+
+    PROCEDURE SP_ELIMINAR_CATEGORIA(
+        p_id        IN NUMBER,
+        p_resultado OUT NUMBER
+    );
+
+    PROCEDURE SP_LISTAR_CATEGORIAS(
+        p_cursor OUT SYS_REFCURSOR
+    );
+
+    PROCEDURE SP_OBTENER_CATEGORIA(
+        p_id     IN NUMBER,
+        p_cursor OUT SYS_REFCURSOR
+    );
+END PKG_CATEGORIAS;
+
+CREATE OR REPLACE PACKAGE BODY PKG_CATEGORIAS AS
+
+    PROCEDURE SP_INSERTAR_CATEGORIA(
+        p_nombre      IN VARCHAR2,
+        p_descripcion IN VARCHAR2,
+        p_activo      IN VARCHAR2,
+        p_resultado   OUT NUMBER
+    ) AS
+    BEGIN
+        INSERT INTO Categorias(Nombre, Descripcion, Activo)
+        VALUES (p_nombre, p_descripcion, p_activo);
+
+        p_resultado := 1;
+    EXCEPTION
+        WHEN OTHERS THEN
+            p_resultado := 0;
+    END;
+
+    PROCEDURE SP_ACTUALIZAR_CATEGORIA(
+        p_id          IN NUMBER,
+        p_nombre      IN VARCHAR2,
+        p_descripcion IN VARCHAR2,
+        p_activo      IN VARCHAR2,
+        p_resultado   OUT NUMBER
+    ) AS
+    BEGIN
+        UPDATE Categorias
+           SET Nombre      = p_nombre,
+               Descripcion = p_descripcion,
+               Activo      = p_activo
+         WHERE idCategorias = p_id;
+
+        p_resultado := SQL%ROWCOUNT;
+    EXCEPTION
+        WHEN OTHERS THEN
+            p_resultado := 0;
+    END;
+
+    PROCEDURE SP_ELIMINAR_CATEGORIA(
+        p_id        IN NUMBER,
+        p_resultado OUT NUMBER
+    ) AS
+    BEGIN
+        DELETE FROM Categorias WHERE idCategorias = p_id;
+        p_resultado := SQL%ROWCOUNT;
+    EXCEPTION
+        WHEN OTHERS THEN
+            p_resultado := 0;
+    END;
+
+    PROCEDURE SP_LISTAR_CATEGORIAS(p_cursor OUT SYS_REFCURSOR) 
+    AS
+    BEGIN
+        OPEN p_cursor FOR
+            SELECT idCategorias, Nombre, Descripcion, Activo
+              FROM Categorias
+             ORDER BY idCategorias;
+    END;
+
+    PROCEDURE SP_OBTENER_CATEGORIA(p_id IN NUMBER, p_cursor OUT SYS_REFCURSOR) 
+    AS
+    BEGIN
+        OPEN p_cursor FOR
+            SELECT idCategorias, Nombre, Descripcion, Activo
+              FROM Categorias
+             WHERE idCategorias = p_id;
+    END;
+
+END PKG_CATEGORIAS;
+
+
 -- PKG para Triggers
 
 CREATE OR REPLACE PACKAGE pkg_triggers AS
@@ -742,12 +697,8 @@ CREATE OR REPLACE PACKAGE BODY pkg_triggers AS
 
   PROCEDURE registrar_cambio_usuario(p_accion VARCHAR2, p_idUsuario NUMBER) IS
   BEGIN
-    -- Ejemplo: Insertar en tabla de auditoría (que deberías crear)
-    INSERT INTO auditoria_usuarios (
-      id_usuario, accion, fecha
-    ) VALUES (
-      p_idUsuario, p_accion, SYSDATE
-    );
+    INSERT INTO auditoria_usuarios (id_usuario, accion, fecha) 
+    VALUES (p_idUsuario, p_accion, SYSDATE);
   EXCEPTION
     WHEN OTHERS THEN
     NULL;
@@ -755,11 +706,8 @@ CREATE OR REPLACE PACKAGE BODY pkg_triggers AS
 
   PROCEDURE registrar_cambio_producto(p_accion VARCHAR2, p_idProducto NUMBER) IS
   BEGIN
-    INSERT INTO auditoria_productos (
-      id_producto, accion, fecha
-    ) VALUES (
-      p_idProducto, p_accion, SYSDATE
-    );
+    INSERT INTO auditoria_productos (id_producto, accion, fecha) 
+    VALUES (p_idProducto, p_accion, SYSDATE);
   EXCEPTION
     WHEN OTHERS THEN
     NULL;
@@ -800,6 +748,62 @@ END;
 Select * from auditoria_productos
 
 SELECT * from auditoria_usuarios
+
+
+-- PKG Para ver LOGS
+
+CREATE OR REPLACE PACKAGE pkg_logs AS
+    FUNCTION fn_logs_usuarios RETURN SYS_REFCURSOR;
+    FUNCTION fn_logs_productos RETURN SYS_REFCURSOR;
+END pkg_logs;
+
+CREATE OR REPLACE PACKAGE BODY pkg_logs AS
+
+    FUNCTION fn_logs_usuarios RETURN SYS_REFCURSOR IS
+        v_cursor SYS_REFCURSOR;
+        v_sql    VARCHAR2(1000);
+    BEGIN
+        v_sql := 'SELECT id_usuario, accion, fecha FROM auditoria_usuarios ORDER BY fecha DESC';
+        OPEN v_cursor FOR v_sql;
+        RETURN v_cursor;
+    END fn_logs_usuarios;
+
+    FUNCTION fn_logs_productos RETURN SYS_REFCURSOR IS
+        v_cursor SYS_REFCURSOR;
+        v_sql    VARCHAR2(1000);
+    BEGIN
+        v_sql := 'SELECT id_producto, accion, fecha FROM auditoria_productos ORDER BY fecha DESC';
+        OPEN v_cursor FOR v_sql;
+        RETURN v_cursor;
+    END fn_logs_productos;
+
+END pkg_logs;
+
+CREATE OR REPLACE PROCEDURE SP_AUMENTAR_PRECIO_PRODUCTOS
+AS
+  CURSOR DATOS IS
+    SELECT idProductos, Precio
+      FROM Producto
+      FOR UPDATE; 
+  v_id     Producto.idProductos%TYPE;
+  v_precio Producto.Precio%TYPE;
+BEGIN
+  OPEN DATOS;
+  LOOP
+    FETCH DATOS INTO v_id, v_precio;
+    EXIT WHEN DATOS%NOTFOUND;
+    -- Aumentar en un 5%
+    UPDATE Producto
+       SET Precio = v_precio * 1.05
+     WHERE idProductos = v_id;
+  END LOOP;
+  CLOSE DATOS;
+  
+  COMMIT;
+END SP_AUMENTAR_PRECIO_PRODUCTOS;
+
+
+
 
 
 

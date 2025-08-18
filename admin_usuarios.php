@@ -1,6 +1,5 @@
 <?php 
 include_once "admin_menu.php";
-// Incluir conexión antes de cualquier salida
 include 'conexion.php';
 
 // Procesar inserción de usuario

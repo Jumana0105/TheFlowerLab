@@ -1,7 +1,13 @@
-<?php 
+<?php
 include_once "cliente_menu.php";
 session_start();
 include 'conexion.php';
+
+// Inicializar variables
+$nombreUsuario = '';
+$emailUsuario = '';
+$telefonoUsuario = '';
+$tipoUsuario = '';
 
 // Verificar si el usuario está autenticado
 if (isset($_SESSION['id_usuario'])) {
@@ -9,20 +15,21 @@ if (isset($_SESSION['id_usuario'])) {
     $sql = "BEGIN SP_OBTENER_DATOS_USUARIO(:id_usuario, :cursor); END;";
     $stmt = oci_parse($conn, $sql);
     $cursor = oci_new_cursor($conn);
-    
+
     oci_bind_by_name($stmt, ':id_usuario', $_SESSION['id_usuario']);
     oci_bind_by_name($stmt, ':cursor', $cursor, -1, OCI_B_CURSOR);
-    
+
     oci_execute($stmt);
     oci_execute($cursor);
-    
+
     $datosUsuario = oci_fetch_assoc($cursor);
-    
-    // Variables seguras para el formulario
+
+    // Guardar variables de usuario
     $nombreUsuario = $datosUsuario['NOMBRE'] ?? '';
     $emailUsuario = $datosUsuario['EMAIL'] ?? '';
     $telefonoUsuario = $datosUsuario['TELEFONO'] ?? '';
-    
+    $tipoUsuario = $_SESSION['tipo_usuario'] ?? '';
+
     oci_free_statement($stmt);
     oci_free_statement($cursor);
 }
@@ -47,7 +54,7 @@ if (isset($_SESSION['id_usuario'])) {
                 <div class="d-flex flex-column align-items-center">
                 <a href="logout.php" class="btn btn-danger mb-2">Cerrar sesión</a>
 
-                <?php if ($_SESSION['tipo_usuario'] === 'admin'): ?>
+                <?php if ($_SESSION['tipo_usuario'] === 'administrador'): ?>
                     <a href="admin.php" class="btn btn-outline-dark">Volver al panel administrador</a>
                 <?php endif; ?>
             </div>

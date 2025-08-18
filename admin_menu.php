@@ -64,7 +64,8 @@ if ($tipo_mayusculas !== 'ADMINISTRADOR') {
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="admin.php">Inicio</a></li>
                     <li class="nav-item"><a class="nav-link" href="admin_usuarios.php">Usuarios</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="admin_productos.php">Productos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="admin_productos.php">Productos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="admin_categorias.php">Categorías</a></li>
                     <li class="nav-item"><a class="nav-link" href="cuenta.php">Vista de cliente</a></li>
                     <li class="nav-item"><a href="logout.php" class="nav-link px-3 py-2 ms-2" style="background-color: #dc3545; color: white; border-radius: 6px; border: 1px solid #dc3545; font-size: 1.2rem;"> Cerrar Sesión </a>
                     </li>

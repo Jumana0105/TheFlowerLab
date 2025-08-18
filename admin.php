@@ -60,6 +60,30 @@ include_once "admin_menu.php";
                     </div>
                 </div>
             </div>
+
+            <!-- Gestión de Categorías -->
+            <div class="col-md-6">
+                <div class="card admin-card h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="card-icon">📋</div>
+                        <h3>Gestión de Categorías</h3>
+                        <p class="text-muted">Administra las categorías de los productos</p>
+                        <a href="admin_categorias.php" class="btn btn-dark">Acceder</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOGS -->
+            <div class="col-md-6">
+                <div class="card admin-card h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="card-icon">🔍</div>
+                        <h3>LOGS</h3>
+                        <p class="text-muted">Visualización de Logs</p>
+                        <a href="logs.php" class="btn btn-dark">Acceder</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

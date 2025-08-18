@@ -9,7 +9,7 @@ if (!$idProducto) {
 
 $mensaje = "";
 
-// 1️⃣ Obtener producto
+// Obtener producto
 $stid = oci_parse($conn, "BEGIN :cursor := PKG_CRUD_PRODUCTOS.FN_OBTENER_PRODUCTO(:id); END;");
 $cursorProducto = oci_new_cursor($conn);
 oci_bind_by_name($stid, ":cursor", $cursorProducto, -1, OCI_B_CURSOR);
@@ -22,7 +22,7 @@ if (!$producto) {
     die("Producto no encontrado.");
 }
 
-// 2️⃣ Obtener categorías activas
+// Obtener categorías activas
 $stidCat = oci_parse($conn, "BEGIN SP_OBTENER_CATEGORIAS_ACTIVAS(:cursor); END;");
 $cursorCategorias = oci_new_cursor($conn);
 oci_bind_by_name($stidCat, ":cursor", $cursorCategorias, -1, OCI_B_CURSOR);
@@ -34,7 +34,7 @@ while ($row = oci_fetch_assoc($cursorCategorias)) {
     $listaCategorias[] = $row;
 }
 
-// 3️⃣ Procesar actualización
+// Procesar actualización
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $nombreNuevo = $_POST['nombre'];
     $descripcionNueva = $_POST['descripcion'];
@@ -71,8 +71,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (oci_execute($stmt)) {
         if ($resultado > 0) {
             $mensaje = "Producto actualizado correctamente.";
-            // Opcional: refrescar producto para mostrar cambios
-            // oci_execute($cursorProducto);
         } else {
             $mensaje = "No se actualizó ningún producto.";
         }
